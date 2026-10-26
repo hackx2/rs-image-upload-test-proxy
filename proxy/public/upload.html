@@ -1,0 +1,21 @@
+<input type="file" id="f" accept="image/png,image/jpeg,image/gif,image/webp" />
+<button id="btn">upload thing (jpg, gif, png, and webp supported)</button>
+<pre id="res_txt"></pre>
+
+<script>
+	btn.onclick = async () => {
+		const file = f.files[0];
+		if (!file) return;
+
+		res_txt.textContent = "uploading... <3";
+
+		const res = await fetch("/upload", {
+			method: "POST",
+			body: file,
+			cache: "no-store"
+		});
+		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + await res.text();
+
+		f.value = "";
+	};
+</script>
