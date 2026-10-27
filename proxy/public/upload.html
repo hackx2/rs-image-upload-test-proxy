@@ -2,6 +2,8 @@
 <button id="btn">upload thing (jpg, gif, png, and webp supported)</button>
 <pre id="res_txt"></pre>
 
+<img id="img" src="../../saint.png" alt="">
+
 <script>
 	btn.onclick = async () => {
 		const file = f.files[0];
@@ -14,7 +16,11 @@
 			body: file,
 			cache: "no-store"
 		});
-		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + await res.text();
+
+		const txt = await res.text();
+		
+		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + txt;
+		img.src = `http://127.0.0.1:3001/data/${txt.slice(0, 2)}/${txt.slice(2, 4)}/${txt}`;
 
 		f.value = "";
 	};

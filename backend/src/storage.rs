@@ -5,8 +5,19 @@ use tokio::{
 	io::{self, AsyncWriteExt},
 };
 
-fn path(hash: &str, ext: &str) -> PathBuf {
+#[derive(Clone, Copy)]
+pub enum FileVariant {
+	Sample,
+	Original
+}
+
+fn path(variant:FileVariant, hash: &str, ext: &str) -> PathBuf {
 	let mut buf = PathBuf::from("..\\data"); // heh
+	if let FileVariant::Sample = variant {
+		buf.push("sample");
+	} else {
+		buf.push("raw");
+	}
 	buf.push(&hash[0..2]);
 	buf.push(&hash[2..4]);
 	buf.push(format!("{hash}.{ext}"));
@@ -18,8 +29,8 @@ pub enum SaveResult {
 	AlreadyExisted,
 }
 
-pub async fn save(hash: &str, ext: &str, bytes: &[u8]) -> io::Result<SaveResult> {
-	let path = path(hash, ext);
+pub async fn save(variant:FileVariant, hash: &str, ext: &str, bytes: &[u8]) -> io::Result<SaveResult> {
+	let path = path(variant, hash, ext);
 
 	if let Some(dir) = path.parent() {
 		fs::create_dir_all(dir).await?;

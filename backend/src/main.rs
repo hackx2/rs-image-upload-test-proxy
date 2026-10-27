@@ -5,11 +5,12 @@ use axum::{
     http::StatusCode,
     routing::post,
 };
+use tower_http::services::ServeDir;
 
 mod hash;
 mod storage;
 
-use crate::storage::SaveResult;
+use crate::storage::{FileVariant, SaveResult};
 
 async fn handle_upload(body: Bytes) -> Result<String, (StatusCode, String)> {
     if body.is_empty() {
@@ -33,7 +34,7 @@ async fn handle_upload(body: Bytes) -> Result<String, (StatusCode, String)> {
 
     let hash = hash::get_sha256(&body);
 
-    let is_new = storage::save(&hash, ext, &body)
+    let is_new = storage::save(FileVariant::Original, &hash, ext, &body)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -55,6 +56,8 @@ const PORT: i32 = 3001;
 async fn main() {
     let app = Router::new()
         .route("/upload", post(handle_upload))
+        // nginx should do this instead but eh
+        .nest_service("/data", ServeDir::new("../data"))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024));
 
     let listener = tokio::net::TcpListener::bind(format!("{ADDR}:{PORT}"))
