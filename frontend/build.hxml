@@ -1,6 +1,7 @@
 --class-path .
 --main Server
 -L flow.http
+-L dotenv
 --hl bin/out.hl
 --cmd hl bin/out.hl
 --dce full

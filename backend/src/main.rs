@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate dotenv_codegen;
+
 use axum::{
 	Router,
 	body::Bytes,
@@ -92,20 +95,26 @@ async fn handle_upload(body: Bytes) -> Result<Json<UploadRes>, (StatusCode, Stri
 	Ok(Json(UploadRes { hash, ext, flags, new_upload: fresh_upload}))
 }
 
-const ADDR: &str = "127.0.0.1";
-const PORT: i32 = 3001;
+const ADDR: &str = dotenv!("BACKEND_IP");
+const PORT: &str = dotenv!("BACKEND_PORT");
 
 #[tokio::main]
 async fn main() {
+	dotenv::from_path("../.env").expect("failed to load .env :c");
+
+	// env
+	let port:i32 = PORT.parse().unwrap();
+	//
+
 	let app = Router::new()
 		.route("/upload", post(handle_upload))
 		// nginx should do this instead but eh
 		.nest_service("/data", ServeDir::new("../data"))
 		.layer(DefaultBodyLimit::max(100 * 1024 * 1024));
 
-	let listener = tokio::net::TcpListener::bind(format!("{ADDR}:{PORT}"))
+	let listener = tokio::net::TcpListener::bind(format!("{ADDR}:{port}"))
 		.await
 		.unwrap();
-	println!("listening on {ADDR}:{PORT}");
+	println!("listening on {ADDR}:{port}");
 	axum::serve(listener, app).await.unwrap();
 }

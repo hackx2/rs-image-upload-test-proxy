@@ -20,10 +20,16 @@ Why sha256? idk 😿😿
 > curl -X POST --data-binary "@the/super/cool/path/to/the/image.png" http://127.0.0.1:3001/upload
 ```
 
-## deps
+## langs
 ```sh
 > haxe
 > rust
+```
+### deps
+```
+> haxelib git dotenv https://github.com/benmerckx/dotenv/
+> haxelib git flow.http https://github.com/hackx2/flow.http/
+> rust deps: (auto installed by cargo)
 ```
 
 ---

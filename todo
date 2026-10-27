@@ -1,0 +1,1 @@
+rewrite frontend using go's built-in http library (using hx2go)
