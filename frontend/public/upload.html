@@ -5,6 +5,9 @@
 <img id="img" src="../../saint.png" alt="">
 
 <script>
+	const IMG_HAS_ORIGINAL = 1 << 0;
+	const IMG_HAS_SAMPLE = 1 << 1; 
+
 	btn.onclick = async () => {
 		const file = f.files[0];
 		if (!file) return;
@@ -17,10 +20,20 @@
 			cache: "no-store"
 		});
 
-		const txt = await res.text();
-		
-		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + txt;
-		img.src = `http://127.0.0.1:3001/data/${txt.slice(0, 2)}/${txt.slice(2, 4)}/${txt}`;
+		const txt = await res.json();
+		console.log(txt)
+		const hash = txt.hash;
+		let ext= txt.ext;
+
+		let route = 'raw';
+		if ((txt.flags & IMG_HAS_SAMPLE) != 0) {
+			route = 'sample';
+			ext = 'webp';
+		}
+
+		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + hash;
+		// haxe redirects any /data requests to our file handling backend
+		img.src = `/data/${route}/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.${ext}`;
 
 		f.value = "";
 	};

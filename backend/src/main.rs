@@ -12,13 +12,28 @@ mod sampler;
 mod hash;
 mod storage;
 
-use crate::storage::{FileVariant, SaveResult};
+use crate::storage::{FileVariant::{self, Sample}, SaveResult};
 
 fn internal<E:ToString>(err:E) -> (StatusCode, String) {
 	(StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
-		
-async fn handle_upload(body: Bytes) -> Result<String, (StatusCode, String)> {
+
+// stupid bitmaskin' stuff
+const IMG_HAS_ORIGINAL:u8 = 1 << 0;
+const IMG_HAS_SAMPLE:u8 = 1 << 1;
+
+use axum::Json;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct UploadRes {
+	hash: String,
+	ext: &'static str,
+	flags: u8,
+	new_upload:bool // pretty self explanatory, no?
+}
+
+async fn handle_upload(body: Bytes) -> Result<Json<UploadRes>, (StatusCode, String)> {
 	if body.is_empty() {
 		return Err((StatusCode::BAD_REQUEST, "empty body".to_string()));
 	}
@@ -44,9 +59,9 @@ async fn handle_upload(body: Bytes) -> Result<String, (StatusCode, String)> {
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let first_time = matches!(is_new, SaveResult::Saved);
+	let fresh_upload = matches!(is_new, SaveResult::Saved);
 
-	if first_time {
+	if fresh_upload {
 		let b = body.clone();
 
 		let sample = spawn_blocking(move || sampler::sample_image(&b))
@@ -60,15 +75,21 @@ async fn handle_upload(body: Bytes) -> Result<String, (StatusCode, String)> {
 		}
 	}
 
+	// create bit flags ^w^
+	// idk what it is but i prefer using bits instead of booleans
+	let mut flags = IMG_HAS_ORIGINAL;
+	if storage::exists(Sample, &hash, "webp").await {
+		// add
+		flags |= IMG_HAS_SAMPLE;
+	}
+
 	println!(
 		"{hash}.{ext} ({})",
-		match is_new {
-			SaveResult::AlreadyExisted => "already exists lol",
-			SaveResult::Saved => "saved <3",
-		}
+		if fresh_upload { "saved <3" } else { "already exists lol" }
 	);
-
-	Ok(format!("{hash}.{ext}"))
+	
+	//Ok(format!("{hash}.{ext}"))
+	Ok(Json(UploadRes { hash, ext, flags, new_upload: fresh_upload}))
 }
 
 const ADDR: &str = "127.0.0.1";
