@@ -5,7 +5,6 @@ use tokio::{
 	io::{self, AsyncWriteExt},
 };
 
-#[derive(Clone, Copy)]
 pub enum FileVariant {
 	Sample,
 	Original

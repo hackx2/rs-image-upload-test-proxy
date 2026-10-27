@@ -20,4 +20,10 @@ Why sha256? idk 😿😿
 > curl -X POST --data-binary "@the/super/cool/path/to/the/image.png" http://127.0.0.1:3001/upload
 ```
 
+## deps
+```sh
+> haxe
+> rust
+```
+
 ---
