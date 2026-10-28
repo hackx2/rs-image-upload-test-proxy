@@ -1,65 +1,100 @@
 use std::path::PathBuf;
 
 use tokio::{
-    fs::{self, OpenOptions},
-    io::{self, AsyncWriteExt},
+	fs::{self, OpenOptions},
+	io::{self, AsyncWriteExt},
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum VideoSampleVariant {
+	_480p,
+	_720p,
+}
+
+impl VideoSampleVariant {
+	// returns the height of the video
+	pub fn h(self) -> u32 {
+		match self {
+			Self::_480p => 480,
+			Self::_720p => 720,
+		}
+	}
+}
+
+#[derive(Clone, Copy)]
 pub enum FileVariant {
-    Sample,
-    Original,
+	Sample,
+	Original,
+
+	// video
+	Video(VideoSampleVariant),
+}
+
+impl FileVariant {
+	// Return's the file variants data directory
+	fn dir(self) -> &'static str {
+		match self {
+			Self::Original => "raw",
+			Self::Sample | Self::Video(_) => "sample",
+		}
+	}
+
+	// return's the file variant's file name
+	fn fname(self, hash: &str, ext: &str) -> String {
+		match self {
+			Self::Video(res) => format!("{hash}_{}p.{ext}", res.h()),
+			_ => format!("{hash}.{ext}"),
+		}
+	}
 }
 
 fn path(variant: FileVariant, hash: &str, ext: &str) -> PathBuf {
-    let mut buf = PathBuf::from("..\\data"); // heh
-    if let FileVariant::Sample = variant {
-        buf.push("sample");
-    } else {
-        buf.push("raw");
-    }
-    buf.push(&hash[0..2]);
-    buf.push(&hash[2..4]);
-    buf.push(format!("{hash}.{ext}"));
-    buf
+	let mut buf = PathBuf::from("../data"); // heh
+
+	buf.push(variant.dir());
+	buf.push(&hash[0..2]);
+	buf.push(&hash[2..4]);
+	buf.push(variant.fname(hash, ext));
+	buf
 }
 
 pub enum SaveResult {
-    Saved,
-    AlreadyExisted,
+	Saved,
+	AlreadyExisted,
 }
 
 pub async fn save(
-    variant: FileVariant,
-    hash: &str,
-    ext: &str,
-    bytes: &[u8],
+	variant: FileVariant,
+	hash: &str,
+	ext: &str,
+	bytes: &[u8],
 ) -> io::Result<SaveResult> {
-    let path = path(variant, hash, ext);
+	let path = path(variant, hash, ext);
 
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir).await?;
-    }
+	if let Some(dir) = path.parent() {
+		fs::create_dir_all(dir).await?;
+	}
 
-    let mut file = match OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .await
-    {
-        Ok(f) => f,
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-            return Ok(SaveResult::AlreadyExisted);
-        }
-        Err(e) => return Err(e),
-    };
+	let mut file = match OpenOptions::new()
+		.write(true)
+		.create_new(true)
+		.open(&path)
+		.await
+	{
+		Ok(f) => f,
+		Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+			return Ok(SaveResult::AlreadyExisted);
+		}
+		Err(e) => return Err(e),
+	};
 
-    file.write_all(bytes).await?;
+	file.write_all(bytes).await?;
 
-    Ok(SaveResult::Saved)
+	Ok(SaveResult::Saved)
 }
 
 pub async fn exists(variant: FileVariant, hash: &str, ext: &str) -> bool {
-    fs::try_exists(path(variant, hash, ext))
-        .await
-        .unwrap_or(false)
+	fs::try_exists(path(variant, hash, ext))
+		.await
+		.unwrap_or(false)
 }
