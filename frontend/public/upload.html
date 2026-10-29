@@ -1,16 +1,29 @@
-<input type="file" id="f" accept="image/png,image/jpeg,image/gif,image/webp" />
+<input type="file" id="f" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm" />
 <button id="btn">upload thing (jpg, gif, png, and webp supported)</button>
 <pre id="res_txt"></pre>
 
-<img id="img" src="../../saint.png" alt="">
+<picture>
+	<source type="" srcset="">
+	<img id="img" src="" alt="">
+</picture>
+<video id="vid" loop controls hidden></video>
 
 <script>
-	const IMG_HAS_ORIGINAL = 1 << 0;
-	const IMG_HAS_SAMPLE = 1 << 1; 
+	const HAS_ORIGINAL = 1 << 0;
+	const HAS_SAMPLE = 1 << 1;
+	const HAS_480P = 1 << 2;
+	const HAS_720P = 1 << 3;
+	const IS_NEW = 1 << 7;
+</script>
 
+<script>
+	const get_path = (r, h) => `/data/${r}/${h.slice(0, 2)}/${h.slice(2, 4)}`;
+</script>
+
+<script>
 	btn.onclick = async () => {
 		const file = f.files[0];
-		if (!file) return;
+		if (!file || file.length <= 0) return;
 
 		res_txt.textContent = "uploading... <3";
 
@@ -20,20 +33,44 @@
 			cache: "no-store"
 		});
 
-		const txt = await res.json();
-		console.log(txt)
-		const hash = txt.hash;
-		let ext= txt.ext;
-
-		let route = 'raw';
-		if ((txt.flags & IMG_HAS_SAMPLE) != 0) {
-			route = 'sample';
-			ext = 'webp';
+		if (!res.ok) {
+			res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + hash;
+			res_txt.textContent = 'failed...';
+			setTimeout((_) => {
+				res_txt.textContent = '';
+			}, 3)
+			return;
 		}
 
-		res_txt.textContent = "[" + res.status + "]" + ' ~ % ' + hash;
-		// haxe redirects any /data requests to our file handling backend
-		img.src = `/data/${route}/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.${ext}`;
+		const payload = await res.json();
+		console.log(payload)
+		console.log(`New Upload(?): ${(payload & IS_NEW) === 0}`)
+
+		const flags = payload.flags;
+		const hash = payload.hash;
+		const ext = payload.ext;
+		const is_vid = payload.mime.startsWith("video/");
+
+		let is_sample = (flags & HAS_SAMPLE) !== 0;
+		let suffix = '';
+
+		if (is_vid && is_sample) {
+			if ((flags & HAS_720P) !== 0) suffix = '_720p'
+			else if ((flags & HAS_480P) !== 0) suffix = '_480p'
+			else is_sample = false;
+		}
+
+		const route = is_sample ? 'sample' : 'raw';
+
+		if (is_vid) {
+			vid.src = `${get_path(route, hash)}/${hash}${suffix}.${is_sample ? 'mp4' : ext}`;
+			img.hidden = true;
+			vid.hidden = false;
+		} else {
+			img.src = `${get_path(route, hash)}/${hash}.${is_sample ? 'webp' : ext}`;
+			img.hidden = false;
+			vid.hidden = true;
+		}
 
 		f.value = "";
 	};

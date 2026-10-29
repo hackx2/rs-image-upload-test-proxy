@@ -30,6 +30,11 @@ Why sha256? idk 😿😿
 > haxelib git dotenv https://github.com/benmerckx/dotenv/
 > haxelib git flow.http https://github.com/hackx2/flow.http/
 > rust deps: (auto installed by cargo)
+
+Windows:
+> winget install Gyan.FFmpeg
+Linux:
+> idk
 ```
 
 ---

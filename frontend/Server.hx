@@ -5,7 +5,6 @@ import haxe.io.Bytes;
 import sys.Http;
 import sys.io.File;
 import sys.net.Host;
-
 import flow.http.Server;
 import flow.http.Request;
 import flow.http.Response;
@@ -40,6 +39,7 @@ function main() {
 
 			case [Post, '/upload']:
 				final http = new Http('$backend_url/upload');
+				http.cnxTimeout = 67;
 				http.setPostBytes(req.body);
 				var body:String = null;
 				http.onData = d -> body = d;
@@ -65,15 +65,15 @@ function main() {
 				final bytes = out.getBytes();
 
 				// display 404 page
-				if(bytes.length == 0) {
+				if (bytes.length == 0) {
 					return notFound();
 				}
 				// trace(path.indexOf('.'));
 				// trace(path.split('.')[path.split('.').length-1]);
 
-				final ext = path.split('.')[path.split('.').length-1];
-				//trace(MimeType.ext(ext));
-				//trace(out.getBytes().length);
+				final ext = path.split('.')[path.split('.').length - 1];
+				// trace(MimeType.ext(ext));
+				// trace(out.getBytes().length);
 				return Response.bytes(OK, out.getBytes(), MimeType.ext(ext));
 
 			case _: return notFound();
