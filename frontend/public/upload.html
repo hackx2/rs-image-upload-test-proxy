@@ -8,6 +8,15 @@
 </picture>
 <video id="vid" loop controls hidden></video>
 
+<style>
+	#vid,
+	#img {
+		max-width: 100%;
+		max-height: 90vh;
+		object-fit: contain;
+	}
+</style>
+
 <script>
 	const HAS_ORIGINAL = 1 << 0;
 	const HAS_SAMPLE = 1 << 1;
@@ -47,6 +56,8 @@
 		console.log(`New Upload(?): ${(payload & IS_NEW) === 0}`)
 
 		const flags = payload.flags;
+		res_txt.textContent = (flags & IS_NEW) !== 0 ? 'uploaded!' : 'already exists';
+
 		const hash = payload.hash;
 		const ext = payload.ext;
 		const is_vid = payload.mime.startsWith("video/");
@@ -63,6 +74,7 @@
 		const route = is_sample ? 'sample' : 'raw';
 
 		if (is_vid) {
+			vid.pause();
 			vid.src = `${get_path(route, hash)}/${hash}${suffix}.${is_sample ? 'mp4' : ext}`;
 			img.hidden = true;
 			vid.hidden = false;
